@@ -26,19 +26,26 @@ class cloud::network::metadata(
   $ks_keystone_admin_proto              = $os_params::ks_keystone_admin_proto,
   $ks_keystone_admin_port               = $os_params::ks_keystone_admin_port,
   $ks_keystone_admin_host               = $os_params::ks_keystone_admin_host,
-  $auth_region                          = $os_params::region
+  $auth_region                          = $os_params::region,
+  $mechanism_drivers                    = $os_params::mechanism_drivers,
 ) {
 
   include 'cloud::network'
 
-  class { 'neutron::agents::metadata':
-    enabled       => $enabled,
-    shared_secret => $neutron_metadata_proxy_shared_secret,
-    debug         => $debug,
-    metadata_ip   => $ks_nova_internal_host,
-    auth_url      => "${ks_keystone_admin_proto}://${ks_keystone_admin_host}:${ks_keystone_admin_port}/v2.0",
-    auth_password => $ks_neutron_password,
-    auth_region   => $auth_region
-  }
+  case $mechanism_drivers {
+    'linuxbridge': {
+    }
+    'openvswitch': {
+      class { 'neutron::agents::metadata':
+        enabled       => $enabled,
+        shared_secret => $neutron_metadata_proxy_shared_secret,
+        debug         => $debug,
+        metadata_ip   => $ks_nova_internal_host,
+        auth_url      => "${ks_keystone_admin_proto}://${ks_keystone_admin_host}:${ks_keystone_admin_port}/v2.0",
+        auth_password => $ks_neutron_password,
+        auth_region   => $auth_region
+      }
 
+    }
+  }
 }

@@ -55,6 +55,11 @@
 #   (optional) Syslog facility to receive log lines
 #   Defaults value in params
 #
+# [*mechanism_drivers*]
+#   (optional) openvswitch (default) or linuxbridge
+#
+#
+
 class cloud::network(
   $verbose                  = $os_params::verbose,
   $debug                    = $os_params::debug,
@@ -66,6 +71,7 @@ class cloud::network(
   $provider_bridge_mappings = $os_params::provider_bridge_mappings,
   $use_syslog               = $os_params::neutron_use_syslog,
   $log_facility             = $os_params::neutron_log_facility
+  $mechanism_drivers        = $os_params::mechanism_drivers,
 ) {
 
   class { 'neutron':
@@ -84,35 +90,46 @@ class cloud::network(
     service_plugins         => ['neutron.services.loadbalancer.plugin.LoadBalancerPlugin','neutron.services.metering.metering_plugin.MeteringPlugin','neutron.services.l3_router.l3_router_plugin.L3RouterPlugin']
   }
 
-  class { 'neutron::agents::ovs':
-    enable_tunneling => true,
-    tunnel_types     => ['gre'],
-    bridge_mappings  => $provider_bridge_mappings,
-    local_ip         => $tunnel_eth
+  if 'linuxbridge' in $mechanism_drivers {
+    class { 'neutron::agents::linuxbridge':
+      physical_interface_mappings => $tunnel_eth
+    }
+    class { 'neutron::plugins::ml2':
+      type_drivers            => ['gre'],
+      tenant_network_types    => ['gre'],
+      mechanism_drivers       => $mechanism_drivers,
+      tunnel_id_ranges        => ['1:10000'],
+      enable_security_group   => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver'
+    }
+  } else {
+    class { 'neutron::agents::ovs':
+      enable_tunneling => true,
+      tunnel_types     => ['gre'],
+      bridge_mappings  => $provider_bridge_mappings,
+      local_ip         => $tunnel_eth
+    }
+    class { 'neutron::plugins::ml2':
+      type_drivers          => ['gre','vlan'],
+      tenant_network_types  => ['gre'],
+      network_vlan_ranges   => $provider_vlan_ranges,
+      tunnel_id_ranges      => ['1:10000'],
+      mechanism_drivers     => ['openvswitch','l2population'],
+      enable_security_group => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver'
+    }
+  
+    # TODO(EmilienM) Temporary, need to be fixed upstream.
+    # There is an issue when using ML2 + OVS: neutron services don't read OVS
+    # config file, only ML2. I need to patch puppet-neutron.
+    # Follow-up: https://github.com/enovance/puppet-cloud/issues/199
+    neutron_plugin_ml2 {
+      'agent/tunnel_types':     value => ['gre'];
+      'agent/l2_population':    value => true;
+      'agent/polling_interval': value => '2';
+      'OVS/local_ip':           value => $tunnel_eth;
+      'OVS/enable_tunneling':   value => true;
+      'OVS/integration_bridge': value => 'br-int';
+      'OVS/tunnel_bridge':      value => 'br-tun';
+      'OVS/bridge_mappings':    value => $provider_bridge_mappings;
+    }
   }
-
-  class { 'neutron::plugins::ml2':
-    type_drivers          => ['gre','vlan'],
-    tenant_network_types  => ['gre'],
-    network_vlan_ranges   => $provider_vlan_ranges,
-    tunnel_id_ranges      => ['1:10000'],
-    mechanism_drivers     => ['openvswitch','l2population'],
-    enable_security_group => 'neutron.agent.linux.iptables_firewall.OVSHybridIptablesFirewallDriver'
-  }
-
-  # TODO(EmilienM) Temporary, need to be fixed upstream.
-  # There is an issue when using ML2 + OVS: neutron services don't read OVS
-  # config file, only ML2. I need to patch puppet-neutron.
-  # Follow-up: https://github.com/enovance/puppet-cloud/issues/199
-  neutron_plugin_ml2 {
-    'agent/tunnel_types':     value => ['gre'];
-    'agent/l2_population':    value => true;
-    'agent/polling_interval': value => '2';
-    'OVS/local_ip':           value => $tunnel_eth;
-    'OVS/enable_tunneling':   value => true;
-    'OVS/integration_bridge': value => 'br-int';
-    'OVS/tunnel_bridge':      value => 'br-tun';
-    'OVS/bridge_mappings':    value => $provider_bridge_mappings;
-  }
-
 }
