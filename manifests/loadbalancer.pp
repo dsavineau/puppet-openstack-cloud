@@ -55,6 +55,7 @@ class cloud::loadbalancer(
   $horizon_port                     = $os_params::horizon_port,
   $spice_port                       = $os_params::spice_port,
   $vip_public_ip                    = $os_params::vip_public_ip,
+  $vip_internal_ip                  = $os_params::vip_internal_ip,
   $galera_ip                        = $os_params::galera_ip
 ){
 
@@ -99,10 +100,10 @@ class cloud::loadbalancer(
     cloud::loadbalancer::listen_http {
       'keystone_api_cluster':
         ports     => $ks_keystone_public_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
       'keystone_api_admin_cluster':
         ports     => $ks_keystone_admin_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
   if $swift_api {
@@ -110,35 +111,35 @@ class cloud::loadbalancer(
       'swift_api_cluster':
         ports     => $ks_swift_public_port,
         httpchk   => 'httpchk /healthcheck',
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
   if $nova_api {
     cloud::loadbalancer::listen_http{
       'nova_api_cluster':
         ports     => $ks_nova_public_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
   if $ec2_api {
     cloud::loadbalancer::listen_http{
       'ec2_api_cluster':
         ports     => $ks_ec2_public_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => $vip_internal_ip;
     }
   }
   if $metadata_api {
     cloud::loadbalancer::listen_http{
       'metadata_api_cluster':
         ports     => $ks_metadata_public_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => $vip_internal_ip;
     }
   }
   if $spice {
     cloud::loadbalancer::listen_http{
       'spice_cluster':
         ports     => $spice_port,
-        listen_ip => $vip_public_ip,
+        listen_ip => [$vip_public_ip, $vip_internal_ip],
         httpchk   => 'httpchk GET /';
     }
   }
@@ -146,63 +147,63 @@ class cloud::loadbalancer(
     cloud::loadbalancer::listen_http{
       'glance_api_cluster':
         ports     => $ks_glance_api_public_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
   if $glance_registry {
     cloud::loadbalancer::listen_http{
       'glance_registry_cluster':
         ports     => $ks_glance_registry_internal_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
   if $neutron_api {
     cloud::loadbalancer::listen_http{
       'neutron_api_cluster':
         ports     => $ks_neutron_public_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
   if $cinder_api {
     cloud::loadbalancer::listen_http{
       'cinder_api_cluster':
         ports     => $ks_cinder_public_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
   if $ceilometer_api {
     cloud::loadbalancer::listen_http{
       'ceilometer_api_cluster':
         ports     => $ks_ceilometer_public_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
   if $heat_api {
     cloud::loadbalancer::listen_http{
       'heat_api_cluster':
         ports     => $ks_heat_public_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
   if $heat_cfn_api {
     cloud::loadbalancer::listen_http{
       'heat_api_cfn_cluster':
         ports     => $ks_heat_cfn_public_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
   if $heat_cloudwatch_api {
     cloud::loadbalancer::listen_http{
       'heat_api_cloudwatch_cluster':
         ports     => $ks_heat_cloudwatch_public_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
   if $horizon {
     cloud::loadbalancer::listen_http{
       'horizon_cluster':
         ports     => $horizon_port,
-        listen_ip => $vip_public_ip;
+        listen_ip => [$vip_public_ip, $vip_internal_ip];
     }
   }
 
