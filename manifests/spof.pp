@@ -29,29 +29,28 @@
 #
 
 class cloud::spof(
-  $cluster_ip        = $os_params::cluster_ip,
-  $multicast_address = '239.1.1.2'
+  $internal_network  = $os_params::internal_network,
+  $multicast_address = $os_params::multicast_address
 ) {
 
-  class { 'corosync':
-    enable_secauth    => false,
-    authkey           => '/var/lib/puppet/ssl/certs/ca.pem',
-    bind_address      => $cluster_ip,
-    multicast_address => $multicast_address
+  $a_internal_netwok = split($internal_network, '/')
+
+  if !defined(Class['corosync']) {
+    class { 'corosync':
+      enable_secauth    => false,
+      authkey           => '/var/lib/puppet/ssl/certs/ca.pem',
+      bind_address      => $a_internal_network[0],
+      multicast_address => $multicast_address
+    }
   }
 
-  corosync::service { 'pacemaker':
-    version => '0',
-  }
+  ensure_resource('corosync::service', 'pacemaker', {'version' => '0'})
+  ensure_resource('cs_property', 'no-quorum-policy', {'value' => 'ignore'})
+  ensure_resource('cs_property', 'stonith-enabled', {'value' => 'false'})
+  ensure_resource('cs_property', 'pe-warn-series-max', {'value' => '1000'})
+  ensure_resource('cs_property', 'pe-input-series-max', {'value' => '1000'})
+  ensure_resource('cs_property', 'cluster-recheck-interval', {'value' => '5min'})
 
-  Package['corosync'] ->
-  cs_property {
-    'no-quorum-policy':         value => 'ignore';
-    'stonith-enabled':          value => 'false';
-    'pe-warn-series-max':       value => 1000;
-    'pe-input-series-max':      value => 1000;
-    'cluster-recheck-interval': value => '5min';
-  } ->
   file { '/usr/lib/ocf/resource.d/heartbeat/ceilometer-agent-central':
     source  => 'puppet:///modules/cloud/heartbeat/ceilometer-agent-central',
     mode    => '0755',
