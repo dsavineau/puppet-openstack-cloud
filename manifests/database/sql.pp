@@ -59,19 +59,13 @@ class cloud::database::sql (
 
   $gcomm_definition = inline_template('<%= @galera_internal_ips.join(",") + "?pc.wait_prim=no" -%>')
 
-  if $::hostname == $galera_master_name {
-    $mysql_service_name = 'mysql-bootstrap'
-  } else {
-    $mysql_service_name = 'mysql'
-  }
-
   # TODO(Gonéri): OS/values detection should be moved in a params.pp
   case $::osfamily {
     'RedHat': {
         class { 'mysql':
             server_package_name => 'MariaDB-Galera-server',
             client_package_name => 'MariaDB-client',
-            service_name        => $mysql_service_name,
+            service_name        => 'mysql',
         }
         # galera-23.2.7-1.rhel6.x86_64
         $wsrep_provider = '/usr/lib64/galera/libgalera_smm.so'
@@ -107,7 +101,7 @@ class cloud::database::sql (
           owner   => 'root',
           group   => 'root',
           mode    => '0600',
-          require => Exec['clean-mysql-binlog'],
+#          require => Exec['clean-mysql-binlog'],
         }
     }
     default: {
@@ -115,22 +109,46 @@ class cloud::database::sql (
     }
   }
 
-  # This is due to this bug: https://bugs.launchpad.net/codership-mysql/+bug/1087368
-  # The backport to API 23 requires a command line option --wsrep-new-cluster:
-  # http://bazaar.launchpad.net/~codership/codership-mysql/wsrep-5.5/revision/3844?start_revid=3844
-  # and the mysql init script cannot have arguments passed to the daemon
-  # using /etc/default/mysql standart mechanism.
-  # To check that the mysqld support the options you can :
-  # strings `which mysqld` | grep wsrep-new-cluster
-  # TODO: to be remove as soon as the API 25 is packaged, ie galera 3 ...
-  file { '/etc/init.d/mysql-bootstrap':
-    content => template("cloud/database/etc_initd_mysql_${::osfamily}"),
-    owner   => 'root',
-    mode    => '0755',
-    group   => 'root',
-    notify  => Service['mysqld'],
-    before  => Package['mysql-server'],
+  if ! galera_is_bootstrapped() {
+    $mysql_server_class_manage_service = false
+
+    if $::hostname == $galera_master_name {
+      warning( 'Galera has to be bootstrapped' )
+      service { 'mysqld':
+        ensure   => 'running',
+        name     => 'mysql',
+        enable   => true,
+        start    => '/sbin/service mysql bootstrap ; sleep 60',
+        require  => Package['mysql-server'],
+      }
+
+    } else {
+      err "Galera is not ready yet"
+    }
+  } else {
+    $mysql_server_class_manage_service = true
+
+    info( 'Galera is bootstrapped' )
   }
+
+  if($::osfamily == 'Debian'){
+
+    # This is due to this bug: https://bugs.launchpad.net/codership-mysql/+bug/1087368
+    # The backport to API 23 requires a command line option --wsrep-new-cluster:
+    # http://bazaar.launchpad.net/~codership/codership-mysql/wsrep-5.5/revision/3844?start_revid=3844
+    # and the mysql init script cannot have arguments passed to the daemon
+    # using /etc/default/mysql standart mechanism.
+    # To check that the mysqld support the options you can :
+    # strings `which mysqld` | grep wsrep-new-cluster
+    # TODO: to be remove as soon as the API 25 is packaged, ie galera 3 ...
+    file { '/etc/init.d/mysql-bootstrap':
+      content => template('cloud/database/etc_initd_mysql_debian'),
+      owner   => 'root',
+      mode    => '0755',
+      group   => 'root',
+      notify  => Service['mysqld'],
+      before  => Package['mysql-server'],
+    }
 
   if($::osfamily == 'Debian'){
     # The startup time can be longer than the default 30s so we take
@@ -152,6 +170,7 @@ class cloud::database::sql (
       root_password     => $mysql_root_password,
       service_name      => $mysql_service_name,
     },
+    manage_service      => $mysql_server_class_manage_service,
     notify              => Service['xinetd'],
   }
 
@@ -224,12 +243,16 @@ class cloud::database::sql (
       privileges => ['all']
     }
 
+    Database_user<<| |>>
+
+    Service['mysqld'] -> Exec[set_mysql_rootpw]
+    Service['mysqld'] -> Database <||>
+    Service['mysqld'] -> Database_user <||>
 
     # TODO(Gonéri):
     # Here we should do the db_sync.
     # https://github.com/enovance/puppet-cloud/issues/156
 
-    Database_user<<| |>>
   } # if $::hostname == $galera_master
 
   # Haproxy http monitoring
@@ -267,22 +290,21 @@ class cloud::database::sql (
   }
 
 
-  exec{'clean-mysql-binlog':
-    # first sync take a long time
-    command     => "/bin/bash -c '/usr/bin/mysqladmin --defaults-file=/root/.my.cnf shutdown ; /bin/rm  ${::mysql::params::datadir}/ib_logfile*'",
-    require     => [
-      File['/root/.my.cnf'],
-      Service['mysqld'],
-    ],
-    notify      => Exec['mysqld-restart'],
-    refreshonly => true,
-    onlyif      => "stat ${::mysql::params::datadir}/ib_logfile0 && test `du -sh ${::mysql::params::datadir}/ib_logfile0 | cut -f1` != '256M'",
-  }
+#  exec{'clean-mysql-binlog':
+#    # first sync take a long time
+#    command     => "/bin/bash -c '/usr/bin/mysqladmin --defaults-file=/root/.my.cnf shutdown ; /bin/rm  ${::mysql::params::datadir}/ib_logfile*'",
+#    require     => [
+#      File['/root/.my.cnf'],
+#      Service['mysqld'],
+#    ],
+#    notify      => Exec['mysqld-restart'],
+#    refreshonly => true,
+#    onlyif      => "stat ${::mysql::params::datadir}/ib_logfile0 && test `du -sh ${::mysql::params::datadir}/ib_logfile0 | cut -f1` != '256M'",
+#  }
 
-  # TODO/WARNING(Gonéri): template changes do not trigger configuration changes
   mysql::server::config{'basic_config':
     notify_service => true,
-    notify         => Exec['clean-mysql-binlog'],
+#    notify         => Exec['clean-mysql-binlog'],
     settings       => template('cloud/database/mysql.conf.erb')
   }
 

@@ -42,7 +42,12 @@ innodb_autoinc_lock_mode        = 2
 innodb_locks_unsafe_for_binlog  = 1
 wsrep_provider                  = "<%= @wsrep_provider %>"
 wsrep_cluster_name              = "galera_cluster"
+# http://www.percona.com/doc/percona-xtradb-cluster/5.5/manual/bootstrap.html
+<% if scope.function_galera_is_bootstrapped([]) %>
 wsrep_cluster_address           = "gcomm://<%= @gcomm_definition %>"
+<% else %>
+wsrep_cluster_address           = "gcomm://"
+<% end %>
 wsrep_sst_auth                  = root:<%= @mysql_root_password %>
 wsrep_certify_nonPK             = 1
 wsrep_convert_LOCK_to_trx       = 0
