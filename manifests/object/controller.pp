@@ -27,13 +27,13 @@ class cloud::object::controller(
   $statsd_host                  = $os_params::statsd_host,
   $statsd_port                  = $os_params::statsd_port,
   $memcache_servers             = $os_params::memcache_servers,
-  $api_eth                      = $os_params::api_eth,
+  $internal_netif_ip            = $os_params::internal_netif_ip,
 ) {
 
   include 'cloud::object'
 
   class { 'swift::proxy':
-    proxy_local_net_ip => $api_eth,
+    proxy_local_net_ip => $internal_netif_ip,
     port               => $ks_swift_internal_port,
     pipeline           => [
       #'catch_errors', 'healthcheck', 'cache', 'bulk', 'ratelimit',
@@ -108,7 +108,7 @@ cache = swift.cache')
   @@haproxy::balancermember{"${::fqdn}-swift_api":
       listening_service => 'swift_api_cluster',
       server_names      => $::hostname,
-      ipaddresses       => $api_eth,
+      ipaddresses       => $internal_netif_ip,
       ports             => $ks_swift_internal_port,
       options           => 'check inter 2000 rise 2 fall 5'
   }

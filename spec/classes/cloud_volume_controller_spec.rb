@@ -45,7 +45,7 @@ describe 'cloud::volume::controller' do
         # TODO(EmilienM) Disabled for now: http://git.io/kfTmcA
         #:backup_ceph_user          => 'cinder',
         #:backup_ceph_pool          => 'ceph_backup_cinder',
-        :api_eth                   => '10.0.0.1' }
+        :internal_netif_ip         => '10.0.0.1' }
     end
 
     it 'configure cinder common' do

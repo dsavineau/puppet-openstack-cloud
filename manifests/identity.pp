@@ -299,7 +299,7 @@
 #   (optional) TCP port to connect to Glance API from admin network
 #   Default value in params
 #
-# [*api_eth*]
+# [*internal_netif_ip*]
 #   (optional) Which interface we bind the Keystone server.
 #   Default value in params
 #
@@ -391,7 +391,7 @@ class cloud::identity (
   $ks_swift_public_host         = $os_params::ks_swift_public_host,
   $ks_swift_public_port         = $os_params::ks_swift_public_port,
   $ks_swift_public_proto        = $os_params::ks_swift_public_proto,
-  $api_eth                      = $os_params::api_eth,
+  $internal_netif_ip            = $os_params::internal_netif_ip,
   $region                       = $os_params::region,
   $verbose                      = $os_params::verbose,
   $debug                        = $os_params::debug,
@@ -417,7 +417,7 @@ class cloud::identity (
     token_provider   => 'keystone.token.providers.uuid.Provider',
     use_syslog       => $use_syslog,
     verbose          => $verbose,
-    bind_host        => $api_eth,
+    bind_host        => $internal_netif_ip,
     public_port      => $ks_keystone_public_port,
     admin_port       => $ks_keystone_admin_port,
     token_expiration => $ks_token_expiration
@@ -557,7 +557,7 @@ class cloud::identity (
   @@haproxy::balancermember{"${::fqdn}-keystone_api":
     listening_service => 'keystone_api_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_keystone_public_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }
@@ -565,7 +565,7 @@ class cloud::identity (
   @@haproxy::balancermember{"${::fqdn}-keystone_api_admin":
     listening_service => 'keystone_api_admin_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_keystone_admin_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }

@@ -55,7 +55,7 @@
 #   (optional) Password to connect to nova queues.
 #   Default value in params
 #
-# [*api_eth*]
+# [*internal_netif_ip*]
 #   (optional) Which interface we bind the Glance API server.
 #   Default value in params
 #
@@ -78,7 +78,7 @@ class cloud::image(
   $ks_glance_password               = $os_params::ks_glance_password,
   $rabbit_password                  = $os_params::rabbit_password,
   $rabbit_host                      = $os_params::rabbit_host,
-  $api_eth                          = $os_params::api_eth,
+  $internal_netif_ip                = $os_params::internal_netif_ip,
   $openstack_vip                    = $os_params::vip_public_ip,
   $rbd_store_pool                   = $os_params::glance_rbd_pool,
   $rbd_store_user                   = $os_params::glance_rbd_user,
@@ -102,7 +102,7 @@ class cloud::image(
     keystone_tenant   => 'services',
     keystone_user     => 'glance',
     log_facility      => $log_facility,
-    bind_host         => $api_eth,
+    bind_host         => $internal_netif_ip,
     bind_port         => $ks_glance_api_internal_port,
     use_syslog        => $use_syslog,
   }
@@ -115,7 +115,7 @@ class cloud::image(
     keystone_password => $ks_glance_password,
     keystone_tenant   => 'services',
     keystone_user     => 'glance',
-    bind_host         => $api_eth,
+    bind_host         => $internal_netif_ip,
     bind_port         => $ks_glance_registry_internal_port,
     use_syslog        => $use_syslog,
     log_facility      => $log_facility,
@@ -164,7 +164,7 @@ class cloud::image(
   @@haproxy::balancermember{"${::fqdn}-glance_api":
     listening_service => 'glance_api_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_glance_api_internal_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }
@@ -172,7 +172,7 @@ class cloud::image(
 @@haproxy::balancermember{"${::fqdn}-glance_registry":
     listening_service => 'glance_registry_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_glance_registry_internal_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }

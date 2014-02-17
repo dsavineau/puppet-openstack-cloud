@@ -31,7 +31,7 @@ describe 'cloud::dashboard' do
         :keystone_proto             => 'http',
         :keystone_port              => '5000',
         :debug                      => true,
-        :api_eth                    => '10.0.0.1' }
+        :internal_netif_ip          => '10.0.0.1' }
     end
 
     it 'configure horizon' do

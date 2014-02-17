@@ -44,7 +44,7 @@ describe 'cloud::compute::controller' do
     let :params do
       { :ks_keystone_internal_host            => '10.0.0.1',
         :ks_nova_password                     => 'secrete',
-        :api_eth                              => '10.0.0.1',
+        :internal_netif_ip                    => '10.0.0.1',
         :spice_port                           => '6082',
         :ks_ec2_public_port                   => '8773',
         :ks_nova_public_port                  => '8774',

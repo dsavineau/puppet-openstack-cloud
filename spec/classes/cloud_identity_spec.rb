@@ -89,7 +89,7 @@ describe 'cloud::identity' do
         :debug                        => true,
         :log_facility                 => 'LOG_LOCAL0',
         :use_syslog                   => true,
-        :api_eth                      => '10.0.0.1' }
+        :internal_netif_ip            => '10.0.0.1' }
     end
 
     it 'configure keystone server' do

@@ -20,7 +20,7 @@
 #  [*galera_internal_ips*]
 #    Array of internal ip of the galera nodes.
 class cloud::database::sql (
-    $api_eth                        = $os_params::api_eth,
+    $internal_netif_ip              = $os_params::internal_netif_ip,
     $service_provider               = 'sysv',
     $galera_master_name             = $os_params::galera_master_name,
     $galera_internal_ips            = $os_params::galera_internal_ips,
@@ -149,7 +149,7 @@ class cloud::database::sql (
 
   class { 'mysql::server':
     config_hash         => {
-      bind_address      => $api_eth,
+      bind_address      => $internal_netif_ip,
       root_password     => $mysql_root_password,
       service_name      => $mysql_service_name,
     },
@@ -290,7 +290,7 @@ class cloud::database::sql (
   @@haproxy::balancermember{$::fqdn:
     listening_service => 'galera_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => '3306',
     options           =>
       inline_template('check inter 2000 rise 2 fall 5 port 9200 <% if @hostname != @galera_master_name -%>backup<% end %>')

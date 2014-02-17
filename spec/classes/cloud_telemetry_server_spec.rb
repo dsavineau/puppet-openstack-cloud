@@ -43,7 +43,7 @@ describe 'cloud::telemetry::server' do
         :ks_keystone_internal_proto           => 'http',
         :ks_ceilometer_internal_port          => '8777',
         :ks_ceilometer_password               => 'secrete',
-        :api_eth                              => '10.0.0.1',
+        :internal_netif_ip                    => '10.0.0.1',
         :ceilometer_database_connection       => 'mongodb://10.0.0.2/ceilometer' }
     end
 

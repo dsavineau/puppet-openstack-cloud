@@ -24,7 +24,7 @@ class cloud::network::controller(
   $ks_keystone_admin_host  = $os_params::ks_keystone_admin_host,
   $ks_keystone_public_port = $os_params::ks_keystone_public_port,
   $ks_neutron_public_port  = $os_params::ks_neutron_public_port,
-  $api_eth                 = $os_params::api_eth,
+  $internal_netif_ip       = $os_params::internal_netif_ip,
   $ks_admin_tenant         = $os_params::ks_admin_tenant,
   $public_cidr             = $os_params::public_cidr
 ) {
@@ -56,7 +56,7 @@ class cloud::network::controller(
   @@haproxy::balancermember{"${::fqdn}-neutron_api":
     listening_service => 'neutron_api_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_neutron_public_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }

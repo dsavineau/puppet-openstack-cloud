@@ -20,30 +20,30 @@ class cloud::orchestration::api(
   $ks_heat_internal_port            = $os_params::ks_heat_internal_port,
   $ks_heat_cfn_internal_port        = $os_params::ks_heat_cfn_internal_port,
   $ks_heat_cloudwatch_internal_port = $os_params::ks_heat_cloudwatch_internal_port,
-  $api_eth                          = $os_params::api_eth,
+  $internal_netif_ip                = $os_params::internal_netif_ip,
 ) {
 
   include 'cloud::orchestration'
 
   class { 'heat::api':
-    bind_host => $api_eth,
+    bind_host => $internal_netif_ip,
     bind_port => $ks_heat_internal_port
   }
 
   class { 'heat::api_cfn':
-    bind_host => $api_eth,
+    bind_host => $internal_netif_ip,
     bind_port => $ks_heat_cfn_internal_port
   }
 
   class { 'heat::api_cloudwatch':
-    bind_host => $api_eth,
+    bind_host => $internal_netif_ip,
     bind_port => $ks_heat_cloudwatch_internal_port
   }
 
   @@haproxy::balancermember{"${::fqdn}-heat_api":
     listening_service => 'heat_api_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_heat_internal_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }
@@ -51,7 +51,7 @@ class cloud::orchestration::api(
   @@haproxy::balancermember{"${::fqdn}-heat_cfn_api":
     listening_service => 'heat_cfn_api_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_heat_cfn_internal_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }
@@ -59,7 +59,7 @@ class cloud::orchestration::api(
   @@haproxy::balancermember{"${::fqdn}-heat_cloudwatch_api":
     listening_service => 'heat_cloudwatch_api_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_heat_cloudwatch_internal_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }

@@ -22,7 +22,7 @@ class cloud::telemetry::server(
   $ks_ceilometer_internal_port    = $os_params::ks_ceilometer_internal_port,
   $ks_ceilometer_password         = $os_params::ks_ceilometer_password,
   $ceilometer_database_connection = $os_params::ceilometer_database_connection,
-  $api_eth                        = $os_params::api_eth,
+  $internal_netif_ip              = $os_params::internal_netif_ip,
 ){
 
   include 'cloud::telemetry'
@@ -56,7 +56,7 @@ class cloud::telemetry::server(
     keystone_password => $ks_ceilometer_password,
     keystone_host     => $ks_keystone_internal_host,
     keystone_protocol => $ks_keystone_internal_proto,
-    host              => $api_eth
+    host              => $internal_netif_ip
   }
 
 # Configure TTL for samples
@@ -74,7 +74,7 @@ class cloud::telemetry::server(
   @@haproxy::balancermember{"${::fqdn}-ceilometer_api":
     listening_service => 'ceilometer_api_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_ceilometer_internal_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }

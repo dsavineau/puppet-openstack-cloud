@@ -32,7 +32,7 @@
 #   (optional) Port used to connect to OpenStack Dashboard
 #   Default value in params
 #
-# [*api_eth*]
+# [*internal_netif_ip*]
 #   (optional) Which interface we bind the Horizon server.
 #   Default value in params
 #
@@ -62,7 +62,7 @@ class cloud::dashboard(
   $ks_keystone_internal_host = $os_params::ks_keystone_internal_host,
   $secret_key                = $os_params::secret_key,
   $horizon_port              = $os_params::horizon_port,
-  $api_eth                   = $os_params::api_eth,
+  $internal_netif_ip         = $os_params::internal_netif_ip,
   $listen_ssl                = false,
   $keystone_host             = $os_params::ks_keystone_internal_host,
   $keystone_proto            = $os_params::ks_keystone_internal_proto,
@@ -78,9 +78,9 @@ class cloud::dashboard(
     can_set_mount_point => 'False',
     # fqdn can can be ambiguous since we use reverse DNS here,
     # e.g: 127.0.0.1 instead of a public IP address.
-    # We force $api_eth to avoid this situation
-    fqdn                => $api_eth,
-    bind_address        => $api_eth,
+    # We force $internal_netif_ip to avoid this situation
+    fqdn                => $internal_netif_ip,
+    bind_address        => $internal_netif_ip,
     swift               => true,
     keystone_url        => $keystone_url,
     django_debug        => $debug
@@ -100,7 +100,7 @@ class cloud::dashboard(
   @@haproxy::balancermember{"${::fqdn}-horizon":
     listening_service => 'horizon_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $horizon_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }

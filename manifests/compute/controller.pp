@@ -20,7 +20,7 @@ class cloud::compute::controller(
   $ks_keystone_internal_host            = $os_params::ks_keystone_internal_host,
   $ks_nova_password                     = $os_params::ks_nova_password,
   $neutron_metadata_proxy_shared_secret = $os_params::neutron_metadata_proxy_shared_secret,
-  $api_eth                              = $os_params::api_eth,
+  $internal_netif_ip                    = $os_params::internal_netif_ip,
   $spice_port                           = $os_params::spice_port,
   $ks_nova_public_port                  = $os_params::ks_nova_public_port,
   $ks_ec2_public_port                   = $os_params::ks_ec2_public_port,
@@ -42,20 +42,20 @@ class cloud::compute::controller(
       enabled                              => true,
       auth_host                            => $ks_keystone_internal_host,
       admin_password                       => $ks_nova_password,
-      api_bind_address                     => $api_eth,
-      metadata_listen                      => $api_eth,
+      api_bind_address                     => $internal_netif_ip,
+      metadata_listen                      => $internal_netif_ip,
       neutron_metadata_proxy_shared_secret => $neutron_metadata_proxy_shared_secret,
     }
 
     class { 'nova::spicehtml5proxy':
       enabled => true,
-      host    => $api_eth
+      host    => $internal_netif_ip
     }
 
   @@haproxy::balancermember{"${::fqdn}-compute_api_ec2":
     listening_service => 'ec2_api_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_ec2_public_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }
@@ -63,7 +63,7 @@ class cloud::compute::controller(
   @@haproxy::balancermember{"${::fqdn}-compute_api_nova":
     listening_service => 'nova_api_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_nova_public_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }
@@ -71,7 +71,7 @@ class cloud::compute::controller(
   @@haproxy::balancermember{"${::fqdn}-compute_api_metadata":
     listening_service => 'metadata_api_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_metadata_public_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }
@@ -79,7 +79,7 @@ class cloud::compute::controller(
   @@haproxy::balancermember{"${::fqdn}-compute_spice":
     listening_service => 'spice_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $spice_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }

@@ -48,7 +48,7 @@ describe 'cloud::orchestration::api' do
       { :ks_heat_internal_port            => '8004',
         :ks_heat_cfn_internal_port        => '8000',
         :ks_heat_cloudwatch_internal_port => '8003',
-        :api_eth                          => '10.0.0.1' }
+        :internal_netif_ip                => '10.0.0.1' }
     end
 
     it 'configure heat common' do

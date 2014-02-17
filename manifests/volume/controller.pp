@@ -21,7 +21,7 @@ class cloud::volume::controller(
   $ks_cinder_password        = $os_params::ks_cinder_password,
   $ks_keystone_internal_host = $os_params::ks_keystone_internal_host,
   $ks_glance_internal_host   = $os_params::ks_glance_internal_host,
-  $api_eth                   = $os_params::api_eth,
+  $internal_netif_ip         = $os_params::internal_netif_ip,
   # TODO(EmilienM) Disabled for now: http://git.io/kfTmcA
   # $backup_ceph_pool          = $os_params::cinder_rbd_backup_pool,
   # $backup_ceph_user          = $os_params::cinder_rbd_backup_user
@@ -34,7 +34,7 @@ class cloud::volume::controller(
   class { 'cinder::api':
     keystone_password  => $ks_cinder_password,
     keystone_auth_host => $ks_keystone_internal_host,
-    bind_host          => $api_eth
+    bind_host          => $internal_netif_ip
   }
 
   class { 'cinder::backup': }
@@ -59,7 +59,7 @@ class cloud::volume::controller(
   @@haproxy::balancermember{"${::fqdn}-cinder_api":
     listening_service => 'cinder_api_cluster',
     server_names      => $::hostname,
-    ipaddresses       => $api_eth,
+    ipaddresses       => $internal_netif_ip,
     ports             => $ks_cinder_internal_port,
     options           => 'check inter 2000 rise 2 fall 5'
   }

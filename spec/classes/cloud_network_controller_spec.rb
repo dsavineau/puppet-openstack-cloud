@@ -42,7 +42,7 @@ describe 'cloud::network::controller' do
         :ks_neutron_password      => 'secrete',
         :ks_keystone_admin_host   => '10.0.0.1',
         :ks_keystone_public_port  => '5000',
-        :api_eth                  => '10.0.0.1' }
+        :internal_netif_ip        => '10.0.0.1' }
     end
 
     it 'configure neutron common' do

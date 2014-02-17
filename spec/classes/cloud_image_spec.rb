@@ -39,7 +39,7 @@ describe 'cloud::image' do
         :verbose                          => true,
         :use_syslog                       => true,
         :log_facility                     => 'LOG_LOCAL0',
-        :api_eth                          => '10.0.0.1' }
+        :internal_netif_ip                => '10.0.0.1' }
     end
 
     it 'configure glance-api' do
