@@ -102,7 +102,7 @@ class cloud::dashboard(
     server_names      => $::hostname,
     ipaddresses       => $internal_netif_ip,
     ports             => $horizon_port,
-    options           => 'check inter 2000 rise 2 fall 5'
+    options           => "check inter 2000 rise 2 fall 5 cookie ${::hostname}"
   }
 
 
