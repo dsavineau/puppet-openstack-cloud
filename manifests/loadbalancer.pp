@@ -296,6 +296,7 @@ class cloud::loadbalancer(
     cloud::loadbalancer::listen_http{
       'horizon_cluster':
         ports     => $horizon_port,
+        httpchk   => "httpchk GET  /horizon/auth/login/  HTTP/1.0\r\nUser-Agent:\ ${::hostname}",
         listen_ip => $lb_bind_ip;
     }
   }
