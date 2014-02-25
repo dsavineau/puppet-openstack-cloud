@@ -22,6 +22,7 @@
 class cloud::database::sql (
     $api_eth                        = $os_params::api_eth,
     $service_provider               = 'sysv',
+    $ha                             = $os_params::ha,
     $galera_master_name             = $os_params::galera_master_name,
     $galera_internal_ips            = $os_params::galera_internal_ips,
     $keystone_db_host               = $os_params::keystone_db_host,
@@ -55,11 +56,13 @@ class cloud::database::sql (
     $galera_clustercheck_ipaddress  = $os_params::internal_netif_ip
 ) {
 
-  include 'xinetd'
+  if $ha {
+      include 'xinetd'
 
-  $gcomm_definition = inline_template('<%= @galera_internal_ips.join(",") + "?pc.wait_prim=no" -%>')
+      $gcomm_definition = inline_template('<%= @galera_internal_ips.join(",") + "?pc.wait_prim=no" -%>')
+  }
 
-  if $::hostname == $galera_master_name {
+  if $::hostname == $galera_master_name and $ha {
     $mysql_service_name = 'mysql-bootstrap'
   } else {
     $mysql_service_name = 'mysql'
@@ -68,10 +71,15 @@ class cloud::database::sql (
   # TODO(Gonéri): OS/values detection should be moved in a params.pp
   case $::osfamily {
     'RedHat': {
+        case $ha {
+          false:   { $database_server_package_name = 'MariaDB-server' }
+          default: { $database_server_package_name = 'MariaDB-Galera-server' }
+        }
+
         class { 'mysql':
-            server_package_name => 'MariaDB-Galera-server',
-            client_package_name => 'MariaDB-client',
-            service_name        => $mysql_service_name,
+          server_package_name => $database_server_package_name,
+          client_package_name => 'MariaDB-client',
+          service_name        => $mysql_service_name,
         }
         # galera-23.2.7-1.rhel6.x86_64
         $wsrep_provider = '/usr/lib64/galera/libgalera_smm.so'
@@ -88,12 +96,20 @@ class cloud::database::sql (
 
     }
     'Debian': {
+        case $ha {
+          false:   { $database_server_package_name = 'mariadb-server' }
+          default: { $database_server_package_name = 'mariadb-galera-server' }
+        }
+
         class { 'mysql':
-            server_package_name => 'mariadb-galera-server',
+            server_package_name => $database_server_package_name,
             client_package_name => 'mariadb-client',
             service_name        => $mysql_service_name,
         }
-        $wsrep_provider = '/usr/lib/galera/libgalera_smm.so'
+
+        if $ha {
+          $wsrep_provider = '/usr/lib/galera/libgalera_smm.so'
+        }
 
         database_user { 'debian-sys-maint@localhost':
           ensure        => 'present',
@@ -132,7 +148,7 @@ class cloud::database::sql (
     before  => Package['mysql-server'],
   }
 
-  if($::osfamily == 'Debian'){
+  if($::osfamily == 'Debian') and $ha {
     # The startup time can be longer than the default 30s so we take
     # care of it there.  Until this bug is not resolved
     # https://mariadb.atlassian.net/browse/MDEV-5540, we have to do it
@@ -146,16 +162,20 @@ class cloud::database::sql (
     }
   }
 
+
   class { 'mysql::server':
     config_hash         => {
       bind_address      => $api_eth,
       root_password     => $mysql_root_password,
       service_name      => $mysql_service_name,
     },
-    notify              => Service['xinetd'],
   }
 
-  if $::hostname == $galera_master_name {
+  if defined(Service['xinetd']) {
+    Class['mysql::server'] ~> Service['xinetd']
+  }
+
+  if $::hostname == $galera_master_name or $ha == false {
 
 # OpenStack DB
     class { 'keystone::db::mysql':
@@ -203,9 +223,10 @@ class cloud::database::sql (
       host          => $heat_db_host,
       allowed_hosts => $heat_db_allowed_hosts,
     }
+  } # if $::hostname == $galera_master_name or $ha == false
 
-
-# Monitoring DB
+  if $::hostname == $galera_master_name and $ha {
+    # Monitoring DB
     warning('Database mapping must be updated to puppetlabs/puppetlabs-mysql >= 2.x (see: https://dev.ring.enovance.com/redmine/issues/4510)')
 
     database { 'monitoring':
@@ -232,40 +253,50 @@ class cloud::database::sql (
     Database_user<<| |>>
   } # if $::hostname == $galera_master
 
-  # Haproxy http monitoring
-  file_line { 'mysqlchk-in-etc-services':
-    path   => '/etc/services',
-    line   => 'mysqlchk 9200/tcp',
-    match  => '^mysqlchk 9200/tcp$',
-    notify => [ Service['xinetd'], Exec['reload_xinetd'] ]
-  }
+  if $ha {
+    # Haproxy http monitoring
+    file_line { 'mysqlchk-in-etc-services':
+      path   => '/etc/services',
+      line   => 'mysqlchk 9200/tcp',
+      match  => '^mysqlchk 9200/tcp$',
+      notify => [ Service['xinetd'], Exec['reload_xinetd'] ]
+    }
 
-  file {
-    '/etc/xinetd.d/mysqlchk':
-      content => template('cloud/database/mysqlchk.erb'),
-      owner   => 'root',
-      group   => 'root',
-      mode    => '0755',
-      require => File['/usr/bin/clustercheck'],
-      notify  => [ Service['xinetd'], Exec['reload_xinetd'] ];
-    '/usr/bin/clustercheck':
-      ensure  => present,
-      content => template('cloud/database/clustercheck.erb'),
-      mode    => '0755',
-      owner   => 'root',
-      group   => 'root';
-  }
+    file {
+      '/etc/xinetd.d/mysqlchk':
+        content => template('cloud/database/mysqlchk.erb'),
+        owner   => 'root',
+        group   => 'root',
+        mode    => '0755',
+        require => File['/usr/bin/clustercheck'],
+        notify  => [ Service['xinetd'], Exec['reload_xinetd'] ];
+      '/usr/bin/clustercheck':
+        ensure  => present,
+        content => template('cloud/database/clustercheck.erb'),
+        mode    => '0755',
+        owner   => 'root',
+        group   => 'root';
+    }
 
-  # Hack for Debian. The puppet-xinetd module do not correctly reload
-  # the configuration on “notify”
-  # TODO(Gonéri): remove this once https://github.com/puppetlabs/puppetlabs-xinetd/pull/9
-  # get merged
-  exec{ 'reload_xinetd':
-    command     => '/usr/bin/pkill -F /var/run/xinetd.pid --signal HUP',
-    refreshonly => true,
-    require     => Service['xinetd'],
-  }
+    # Hack for Debian. The puppet-xinetd module do not correctly reload
+    # the configuration on “notify”
+    # TODO(Gonéri): remove this once https://github.com/puppetlabs/puppetlabs-xinetd/pull/9
+    # get merged
+    exec{ 'reload_xinetd':
+      command     => '/usr/bin/pkill -F /var/run/xinetd.pid --signal HUP',
+      refreshonly => true,
+      require     => Service['xinetd'],
+    }
 
+    @@haproxy::balancermember{$::fqdn:
+      listening_service => 'galera_cluster',
+      server_names      => $::hostname,
+      ipaddresses       => $api_eth,
+      ports             => '3306',
+      options           =>
+        inline_template('check inter 2000 rise 2 fall 5 port 9200 <% if @hostname != @galera_master_name -%>backup<% end %>')
+    }
+  } # if $ha
 
   exec{'clean-mysql-binlog':
     # first sync take a long time
@@ -285,14 +316,4 @@ class cloud::database::sql (
     notify         => Exec['clean-mysql-binlog'],
     settings       => template('cloud/database/mysql.conf.erb')
   }
-
-  @@haproxy::balancermember{$::fqdn:
-    listening_service => 'galera_cluster',
-    server_names      => $::hostname,
-    ipaddresses       => $api_eth,
-    ports             => '3306',
-    options           =>
-      inline_template('check inter 2000 rise 2 fall 5 port 9200 <% if @hostname != @galera_master_name -%>backup<% end %>')
-  }
-
 }
