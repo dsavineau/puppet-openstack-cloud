@@ -17,7 +17,7 @@
 #
 
 class cloud::network::lbaas(
-  $debug                 = $os_params::debug
+  $debug                 = true,
 ) {
 
   include 'cloud::network'
