@@ -29,8 +29,8 @@
 #
 
 class cloud::messaging(
-  $rabbit_names    = $os_params::rabbit_names,
-  $rabbit_password = $os_params::rabbit_password
+  $rabbit_names    = ['mgmt001'],
+  $rabbit_password = 'rabbitpassword'
 ){
 
   class { 'rabbitmq::server':
