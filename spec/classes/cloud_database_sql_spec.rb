@@ -20,12 +20,6 @@ require 'spec_helper'
 
 describe 'cloud::database::sql' do
 
-  shared_examples_for 'openstack database sql' do
-
-    let :pre_condition do
-      "include xinetd"
-    end
-
     let :params do
       {
         :service_provider               => 'sysv',
@@ -64,36 +58,7 @@ describe 'cloud::database::sql' do
       }
     end
 
-    it 'configure mysql galera server' do
-      should contain_class('mysql').with(
-          :server_package_name => platform_params[:server_package_name],
-          :client_package_name => platform_params[:client_package_name],
-          :service_name => 'mysql'
-        )
-
-      should contain_class('mysql::server').with(
-          :config_hash  => { 'bind_address' => '10.0.0.1', 'root_password' => params[:mysql_root_password], 'service_name' => 'mysql' },
-          :notify       => 'Service[xinetd]'
-        )
-    end # configure mysql galera server
-
-    context 'configure mysqlchk http replication' do
-      it { should contain_file_line('mysqlchk-in-etc-services').with(
-        :line   => 'mysqlchk 9200/tcp',
-        :path   => '/etc/services',
-        :notify => ['Service[xinetd]', 'Exec[reload_xinetd]']
-      )}
-
-      it { should contain_file('/etc/xinetd.d/mysqlchk').with_mode('0755') }
-      it { should contain_file('/usr/bin/clustercheck').with_mode('0755') }
-      it { should contain_file('/usr/bin/clustercheck').with_content(/MYSQL_USERNAME="#{params[:galera_clustercheck_dbuser]}"/)}
-      it { should contain_file('/usr/bin/clustercheck').with_content(/MYSQL_PASSWORD="#{params[:galera_clustercheck_dbpassword]}"/)}
-      it { should contain_file('/etc/xinetd.d/mysqlchk').with_content(/bind            = #{params[:galera_clustercheck_ipaddress]}/)}
-
-    end # configure mysqlchk http replication
-
-    context 'configure databases on the galera master server' do
-
+    shared_examples_for 'create openstack databases' do
       before :each do
         facts.merge!( :hostname => 'os-ci-test1' )
       end
@@ -151,6 +116,12 @@ describe 'cloud::database::sql' do
             :host          => '10.0.0.1',
             :allowed_hosts => ['10.0.0.1','10.0.0.2','10.0.0.3'] )
       end
+    end
+
+    shared_examples_for 'create monitoring database' do
+      before :each do
+        facts.merge!( :hostname => 'os-ci-test1' )
+      end
 
       it 'configure monitoring database' do
         should contain_database('monitoring').with(
@@ -165,11 +136,81 @@ describe 'cloud::database::sql' do
         should contain_database_grant("#{params[:galera_clustercheck_dbuser]}@localhost/monitoring").with(
           :privileges => 'all'
         )
-      end # configure monitoring database
-    end # configure databases on the galera master server
-  end # openstack database sql
+      end
+    end # create monitoring database
 
-  context 'on Debian platforms' do
+  shared_examples_for 'openstack database sql with HA' do
+
+    before do
+      params.merge!(
+        :ha => true
+      )
+    end
+
+    let :pre_condition do
+      "include xinetd"
+    end
+
+    it 'configure mysql galera server' do
+      should contain_class('mysql').with(
+          :server_package_name => platform_params[:server_package_name],
+          :client_package_name => platform_params[:client_package_name],
+          :service_name => 'mysql'
+        )
+
+      should contain_class('mysql::server').with(
+          :config_hash  => { 'bind_address' => '10.0.0.1', 'root_password' => params[:mysql_root_password], 'service_name' => 'mysql' },
+          :notify       => 'Service[xinetd]'
+        )
+    end # configure mysql galera server
+
+    context 'configure mysqlchk http replication' do
+      it { should contain_file_line('mysqlchk-in-etc-services').with(
+        :line   => 'mysqlchk 9200/tcp',
+        :path   => '/etc/services',
+        :notify => ['Service[xinetd]', 'Exec[reload_xinetd]']
+      )}
+
+      it { should contain_file('/etc/xinetd.d/mysqlchk').with_mode('0755') }
+      it { should contain_file('/usr/bin/clustercheck').with_mode('0755') }
+      it { should contain_file('/usr/bin/clustercheck').with_content(/MYSQL_USERNAME="#{params[:galera_clustercheck_dbuser]}"/)}
+      it { should contain_file('/usr/bin/clustercheck').with_content(/MYSQL_PASSWORD="#{params[:galera_clustercheck_dbpassword]}"/)}
+      it { should contain_file('/etc/xinetd.d/mysqlchk').with_content(/bind            = #{params[:galera_clustercheck_ipaddress]}/)}
+
+    end # configure mysqlchk http replication
+
+    context 'create databases with HA' do
+      it_behaves_like 'create openstack databases'
+      it_behaves_like 'create monitoring database'
+    end
+
+  end # openstack database sql with HA
+
+  shared_examples_for 'openstack database sql without HA' do
+    before do
+      params.merge!(
+        :ha => false
+      )
+    end
+    it 'configure mysql server' do
+      should contain_class('mysql').with(
+          :server_package_name => platform_params[:server_package_name],
+          :client_package_name => platform_params[:client_package_name],
+          :service_name => 'mysql'
+        )
+
+      should contain_class('mysql::server').with(
+          :config_hash  => { 'bind_address' => '10.0.0.1', 'root_password' => params[:mysql_root_password], 'service_name' => 'mysql' }
+        )
+    end # configure mysql galera server
+
+    context 'create databases without HA' do
+      it_behaves_like 'create openstack databases'
+    end
+
+  end
+
+  context 'on Debian platforms with HA' do
     let :facts do
       { :osfamily => 'Debian' }
     end
@@ -180,10 +221,28 @@ describe 'cloud::database::sql' do
         :wsrep_provider      => '/usr/lib/galera/libgalera_smm.so' }
     end
 
-    it_configures 'openstack database sql'
+    it_configures 'openstack database sql with HA'
   end
 
-  context 'on RedHat platforms' do
+  context 'on Debian platforms without HA' do
+    before do
+      params.merge!(
+        :ha => true
+      )
+    end
+    let :facts do
+      { :osfamily => 'Debian' }
+    end
+
+    let :platform_params do
+      { :server_package_name => 'mariadb-server',
+        :client_package_name => 'mariadb-client' }
+    end
+
+    it_configures 'openstack database sql without HA'
+  end
+
+  context 'on RedHat platforms with HA' do
     let :facts do
       { :osfamily => 'RedHat' }
     end
@@ -194,7 +253,20 @@ describe 'cloud::database::sql' do
         :wsrep_provider      => '/usr/lib64/galera/libgalera_smm.so' }
     end
 
-    it_configures 'openstack database sql'
+    it_configures 'openstack database sql with HA'
+  end
+
+  context 'on RedHat platforms without HA' do
+    let :facts do
+      { :osfamily => 'RedHat' }
+    end
+
+    let :platform_params do
+      { :server_package_name => 'MariaDB-server',
+        :client_package_name => 'MariaDB-client' }
+    end
+
+    it_configures 'openstack database sql without HA'
   end
 
 end
