@@ -40,6 +40,7 @@ innodb_max_dirty_pages_pct      = 50
 binlog_format                   = ROW
 innodb_autoinc_lock_mode        = 2
 innodb_locks_unsafe_for_binlog  = 1
+<% if ha == true -%>
 wsrep_provider                  = "<%= @wsrep_provider %>"
 wsrep_cluster_name              = "galera_cluster"
 wsrep_cluster_address           = "gcomm://<%= @gcomm_definition %>"
@@ -52,6 +53,7 @@ wsrep_causal_reads              = 0
 wsrep_sst_method                = rsync
 wsrep_node_address              = "<%= @api_eth %>"
 wsrep_node_incoming_address     = "<%= @api_eth %>"
+<% end -%>
 # this value here are used by /usr/bin/innobackupex
 # and wsrep_sst_xtrabackup take only one configuration file and use the last one
 # (/etc/mysql/my.cnf is not used)
