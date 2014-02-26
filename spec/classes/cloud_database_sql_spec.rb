@@ -118,27 +118,6 @@ describe 'cloud::database::sql' do
       end
     end
 
-    shared_examples_for 'create monitoring database' do
-      before :each do
-        facts.merge!( :hostname => 'os-ci-test1' )
-      end
-
-      it 'configure monitoring database' do
-        should contain_database('monitoring').with(
-          :ensure   => 'present',
-          :charset  => 'utf8'
-        )
-        should contain_database_user("#{params[:galera_clustercheck_dbuser]}@localhost").with(
-          :ensure        => 'present',
-          :password_hash => '*FDC68394456829A7344C2E9D4CDFD43DCE2EFD8F',
-          :provider      => 'mysql'
-        )
-        should contain_database_grant("#{params[:galera_clustercheck_dbuser]}@localhost/monitoring").with(
-          :privileges => 'all'
-        )
-      end
-    end # create monitoring database
-
   shared_examples_for 'openstack database sql with HA' do
 
     before do
@@ -181,8 +160,29 @@ describe 'cloud::database::sql' do
 
     context 'create databases with HA' do
       it_behaves_like 'create openstack databases'
-      it_behaves_like 'create monitoring database'
     end
+
+    context 'create monitoring database' do
+
+      before do
+        facts.merge!( :hostname => 'os-ci-test1' )
+      end
+
+      it 'configure monitoring database' do
+        should contain_database('monitoring').with(
+          :ensure   => 'present',
+          :charset  => 'utf8'
+        )
+        should contain_database_user("#{params[:galera_clustercheck_dbuser]}@localhost").with(
+          :ensure        => 'present',
+          :password_hash => '*FDC68394456829A7344C2E9D4CDFD43DCE2EFD8F',
+          :provider      => 'mysql'
+        )
+        should contain_database_grant("#{params[:galera_clustercheck_dbuser]}@localhost/monitoring").with(
+          :privileges => 'all'
+        )
+      end
+    end # create monitoring database
 
   end # openstack database sql with HA
 
