@@ -22,7 +22,7 @@
 class cloud::database::sql (
     $api_eth                        = $os_params::api_eth,
     $service_provider               = 'sysv',
-    $ha                             = $os_params::ha,
+    $ha                             = true,
     $galera_master_name             = $os_params::galera_master_name,
     $galera_internal_ips            = $os_params::galera_internal_ips,
     $keystone_db_host               = $os_params::keystone_db_host,
