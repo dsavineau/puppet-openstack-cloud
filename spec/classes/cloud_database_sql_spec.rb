@@ -225,11 +225,6 @@ describe 'cloud::database::sql' do
   end
 
   context 'on Debian platforms without HA' do
-    before do
-      params.merge!(
-        :ha => true
-      )
-    end
     let :facts do
       { :osfamily => 'Debian' }
     end
