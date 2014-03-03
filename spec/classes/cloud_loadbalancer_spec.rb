@@ -42,12 +42,13 @@ describe 'cloud::loadbalancer' do
         :haproxy_auth                      => 'root:secrete',
         :keepalived_state                  => 'BACKUP',
         :keepalived_priority               => 50,
-        :keepalived_interface              => 'eth0',
-        :keepalived_ipvs                   => ['10.0.0.1', '10.0.0.2'],
+        :keepalived_public_interface       => 'eth0',
+        :keepalived_public_ipvs            => ['10.0.0.1', '10.0.0.2'],
+        :keepalived_internal_interface     => 'eth1',
+        :keepalived_internal_ipvs          => ['10.0.0.3', '10.0.0.4'],
         :keepalived_localhost_ip           => '127.0.0.1',
         :horizon_port                      => '80',
         :spice_port                        => '6082',
-        :vip_public_ip                     => '10.0.0.3',
         :galera_ip                         => '10.0.0.4',
         :ks_ceilometer_public_port         => '8777',
         :ks_nova_public_port               => '8774',
@@ -73,10 +74,10 @@ describe 'cloud::loadbalancer' do
       should contain_class('keepalived')
     end # configure keepalived server
 
-    context 'configure keepalived in backup' do
+    context 'configure keepalived in backup for public network' do
       it 'configure vrrp_instance with BACKUP state' do
         should contain_keepalived__instance('1').with({
-          'interface'     => params[:keepalived_interface],
+          'interface'     => params[:keepalived_public_interface],
           'track_script'  => ['haproxy'],
           'state'         => params[:keepalived_state],
           'priority'      => params[:keepalived_priority],
@@ -84,15 +85,38 @@ describe 'cloud::loadbalancer' do
           'notify_backup' => '"/etc/init.d/haproxy stop"',
         })
       end # configure vrrp_instance with BACKUP state
-    end # configure keepalived in backup
+    end # configure keepalived in backup for public network
+
+    context 'configure keepalived in backup for private network' do
+      it 'configure vrrp_instance with BACKUP state' do
+        should contain_keepalived__instance('2').with({
+          'interface'     => params[:keepalived_internal_interface],
+          'track_script'  => ['haproxy'],
+          'state'         => params[:keepalived_state],
+          'priority'      => params[:keepalived_priority],
+          'notify_master' => '"/etc/init.d/haproxy start"',
+          'notify_backup' => '"/etc/init.d/haproxy stop"',
+        })
+      end # configure vrrp_instance with BACKUP state
+    end # configure keepalived in backup for private network
 
     context 'configure keepalived in master' do
       before :each do
         params.merge!( :keepalived_state => 'MASTER' )
       end
-      it 'configure vrrp_instance with MASTER state' do
+      it 'configure vrrp_instance with MASTER state for public network' do
         should contain_keepalived__instance('1').with({
-          'interface'     => params[:keepalived_interface],
+          'interface'     => params[:keepalived_public_interface],
+          'track_script'  => ['haproxy'],
+          'state'         => 'MASTER',
+          'priority'      => params[:keepalived_priority],
+          'notify_master' => '"/etc/init.d/haproxy start"',
+          'notify_backup' => '"/etc/init.d/haproxy stop"',
+        })
+      end
+      it 'configure vrrp_instance with MASTER state for internal network' do
+        should contain_keepalived__instance('2').with({
+          'interface'     => params[:keepalived_internal_interface],
           'track_script'  => ['haproxy'],
           'state'         => 'MASTER',
           'priority'      => params[:keepalived_priority],
@@ -113,7 +137,7 @@ describe 'cloud::loadbalancer' do
 
     context 'configure monitor haproxy listen' do
       it { should contain_haproxy__listen('monitor').with(
-        :ipaddress => params[:vip_public_ip],
+        :ipaddress => ['10.0.0.1', '10.0.0.2', '10.0.0.3', '10.0.0.4'],
         :ports     => '9300'
       )}
     end # configure monitor haproxy listen
