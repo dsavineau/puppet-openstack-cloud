@@ -23,6 +23,8 @@ class cloud::telemetry::server(
   $ks_ceilometer_password         = $os_params::ks_ceilometer_password,
   $api_eth                        = $os_params::api_eth,
   $mongo_nodes                    = $os_params::mongo_nodes,
+  $public                         = true,
+  $internal                       = true
 ){
 
   include 'cloud::telemetry'
@@ -37,41 +39,49 @@ class cloud::telemetry::server(
     require             => Anchor['mongodb setup done'],
   }
 
+  if $internal {
+
 # Install Ceilometer-collector
-  class { 'ceilometer::collector': }
+    class { 'ceilometer::collector': }
 
 # Install Ceilometer-evaluator
-  class { 'ceilometer::alarm::evaluator': }
-
-# Install Ceilometer-notifier
-  class { 'ceilometer::alarm::notifier': }
-
-# Install Ceilometer-API
-  class { 'ceilometer::api':
-    keystone_password => $ks_ceilometer_password,
-    keystone_host     => $ks_keystone_internal_host,
-    keystone_protocol => $ks_keystone_internal_proto,
-    host              => $api_eth
-  }
+    class { 'ceilometer::alarm::evaluator': }
 
 # Configure TTL for samples
 # Purge datas older than one month
 # Run the script once a day but with a random time to avoid
 # issues with MongoDB access
-  class { 'ceilometer::expirer':
-    time_to_live => '2592000',
-    minute       => '0',
-    hour         => '0',
+    class { 'ceilometer::expirer':
+      time_to_live => '2592000',
+      minute       => '0',
+      hour         => '0',
+    }
+
+    Cron <<| title == 'ceilometer-expirer' |>> { command => "sleep $((\$RANDOM % 86400)) && ${::ceilometer::params::expirer_command}" }
+
   }
 
-  Cron <<| title == 'ceilometer-expirer' |>> { command => "sleep $((\$RANDOM % 86400)) && ${::ceilometer::params::expirer_command}" }
+  if $public {
 
-  @@haproxy::balancermember{"${::fqdn}-ceilometer_api":
-    listening_service => 'ceilometer_api_cluster',
-    server_names      => $::hostname,
-    ipaddresses       => $api_eth,
-    ports             => $ks_ceilometer_internal_port,
-    options           => 'check inter 2000 rise 2 fall 5'
+# Install Ceilometer-notifier
+    class { 'ceilometer::alarm::notifier': }
+
+# Install Ceilometer-API
+    class { 'ceilometer::api':
+      keystone_password => $ks_ceilometer_password,
+      keystone_host     => $ks_keystone_internal_host,
+      keystone_protocol => $ks_keystone_internal_proto,
+      host              => $api_eth
+    }
+
+    @@haproxy::balancermember{"${::fqdn}-ceilometer_api":
+      listening_service => 'ceilometer_api_cluster',
+      server_names      => $::hostname,
+      ipaddresses       => $api_eth,
+      ports             => $ks_ceilometer_internal_port,
+      options           => 'check inter 2000 rise 2 fall 5'
+    }
+  
   }
 
 }

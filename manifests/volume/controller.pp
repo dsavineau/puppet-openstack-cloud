@@ -26,25 +26,42 @@ class cloud::volume::controller(
   # TODO(EmilienM) Disabled for now: http://git.io/kfTmcA
   # $backup_ceph_pool          = $os_params::cinder_rbd_backup_pool,
   # $backup_ceph_user          = $os_params::cinder_rbd_backup_user
+  $public                      = true,
+  $internal                    = true
 ) {
 
   include 'cloud::volume'
 
-  class { 'cinder::scheduler': }
+  if $public {
 
-  class { 'cinder::api':
-    keystone_password  => $ks_cinder_password,
-    keystone_auth_host => $ks_keystone_internal_host,
-    bind_host          => $api_eth
+    class { 'cinder::api':
+      keystone_password  => $ks_cinder_password,
+      keystone_auth_host => $ks_keystone_internal_host,
+      bind_host          => $api_eth
+    }
+
+    @@haproxy::balancermember{"${::fqdn}-cinder_api":
+      listening_service => 'cinder_api_cluster',
+      server_names      => $::hostname,
+      ipaddresses       => $api_eth,
+      ports             => $ks_cinder_internal_port,
+      options           => 'check inter 2000 rise 2 fall 5'
+    }
+
   }
 
-  class { 'cinder::backup': }
+  if $internal {
 
-  # TODO(EmilienM) Disabled for now: http://git.io/kfTmcA
-  # class { 'cinder::backup::ceph':
-  #   backup_ceph_user => $backup_ceph_user,
-  #   backup_ceph_pool => $backup_ceph_pool
-  # }
+    class { 'cinder::scheduler': }
+    class { 'cinder::backup': }
+
+    # TODO(EmilienM) Disabled for now: http://git.io/kfTmcA
+    # class { 'cinder::backup::ceph':
+    #   backup_ceph_user => $backup_ceph_user,
+    #   backup_ceph_pool => $backup_ceph_pool
+    # }
+
+  }
 
   # TODO(EmilienM) Disabled for now: http://git.io/uM5sgg
   # class { 'cinder::glance':
@@ -55,14 +72,6 @@ class cloud::volume::controller(
   cinder_config {
     'DEFAULT/glance_api_servers':     value => "${ks_glance_internal_host}:${ks_glance_api_internal_port}";
     'DEFAULT/glance_request_timeout': value => '10';
-  }
-
-  @@haproxy::balancermember{"${::fqdn}-cinder_api":
-    listening_service => 'cinder_api_cluster',
-    server_names      => $::hostname,
-    ipaddresses       => $api_eth,
-    ports             => $ks_cinder_internal_port,
-    options           => 'check inter 2000 rise 2 fall 5'
   }
 
 }

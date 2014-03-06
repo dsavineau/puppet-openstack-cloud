@@ -24,20 +24,25 @@ class cloud::compute::controller(
   $spice_port                           = $os_params::spice_port,
   $ks_nova_public_port                  = $os_params::ks_nova_public_port,
   $ks_ec2_public_port                   = $os_params::ks_ec2_public_port,
-  $ks_metadata_public_port              = $os_params::ks_metadata_public_port
+  $ks_metadata_public_port              = $os_params::ks_metadata_public_port,
+  $public                               = true,
+  $internal                             = true
 ){
 
   include 'cloud::compute'
 
-  class { [
-    'nova::scheduler',
-    'nova::cert',
-    'nova::consoleauth',
-    'nova::conductor'
-  ]:
-    enabled => true,
+  if $internal {
+    class { [
+      'nova::scheduler',
+      'nova::cert',
+      'nova::consoleauth',
+      'nova::conductor'
+    ]:
+      enabled => true,
+    }
   }
 
+  if $public {
     class { 'nova::api':
       enabled                              => true,
       auth_host                            => $ks_keystone_internal_host,
@@ -52,36 +57,37 @@ class cloud::compute::controller(
       host    => $api_eth
     }
 
-  @@haproxy::balancermember{"${::fqdn}-compute_api_ec2":
-    listening_service => 'ec2_api_cluster',
-    server_names      => $::hostname,
-    ipaddresses       => $api_eth,
-    ports             => $ks_ec2_public_port,
-    options           => 'check inter 2000 rise 2 fall 5'
-  }
+    @@haproxy::balancermember{"${::fqdn}-compute_api_ec2":
+      listening_service => 'ec2_api_cluster',
+      server_names      => $::hostname,
+      ipaddresses       => $api_eth,
+      ports             => $ks_ec2_public_port,
+      options           => 'check inter 2000 rise 2 fall 5'
+    }
 
-  @@haproxy::balancermember{"${::fqdn}-compute_api_nova":
-    listening_service => 'nova_api_cluster',
-    server_names      => $::hostname,
-    ipaddresses       => $api_eth,
-    ports             => $ks_nova_public_port,
-    options           => 'check inter 2000 rise 2 fall 5'
-  }
+    @@haproxy::balancermember{"${::fqdn}-compute_api_nova":
+      listening_service => 'nova_api_cluster',
+      server_names      => $::hostname,
+      ipaddresses       => $api_eth,
+      ports             => $ks_nova_public_port,
+      options           => 'check inter 2000 rise 2 fall 5'
+    }
 
-  @@haproxy::balancermember{"${::fqdn}-compute_api_metadata":
-    listening_service => 'metadata_api_cluster',
-    server_names      => $::hostname,
-    ipaddresses       => $api_eth,
-    ports             => $ks_metadata_public_port,
-    options           => 'check inter 2000 rise 2 fall 5'
-  }
+    @@haproxy::balancermember{"${::fqdn}-compute_api_metadata":
+      listening_service => 'metadata_api_cluster',
+      server_names      => $::hostname,
+      ipaddresses       => $api_eth,
+      ports             => $ks_metadata_public_port,
+      options           => 'check inter 2000 rise 2 fall 5'
+    }
 
-  @@haproxy::balancermember{"${::fqdn}-compute_spice":
-    listening_service => 'spice_cluster',
-    server_names      => $::hostname,
-    ipaddresses       => $api_eth,
-    ports             => $spice_port,
-    options           => 'check inter 2000 rise 2 fall 5'
+    @@haproxy::balancermember{"${::fqdn}-compute_spice":
+      listening_service => 'spice_cluster',
+      server_names      => $::hostname,
+      ipaddresses       => $api_eth,
+      ports             => $spice_port,
+      options           => 'check inter 2000 rise 2 fall 5'
+    }
   }
 
 }
