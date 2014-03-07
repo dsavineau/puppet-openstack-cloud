@@ -17,52 +17,9 @@
 #
 
 class cloud::volume::controller(
-  $ks_cinder_internal_port     = $os_params::ks_cinder_internal_port,
-  $ks_cinder_password          = $os_params::ks_cinder_password,
-  $ks_keystone_internal_host   = $os_params::ks_keystone_internal_host,
-  $ks_glance_internal_host     = $os_params::ks_glance_internal_host,
-  $ks_glance_api_internal_port = $os_params::ks_glance_api_internal_port,
-  $api_eth                     = $os_params::api_eth,
-  # TODO(EmilienM) Disabled for now: http://git.io/kfTmcA
-  # $backup_ceph_pool          = $os_params::cinder_rbd_backup_pool,
-  # $backup_ceph_user          = $os_params::cinder_rbd_backup_user
 ) {
 
-  include 'cloud::volume'
-
-  class { 'cinder::scheduler': }
-
-  class { 'cinder::api':
-    keystone_password  => $ks_cinder_password,
-    keystone_auth_host => $ks_keystone_internal_host,
-    bind_host          => $api_eth
-  }
-
-  class { 'cinder::backup': }
-
-  # TODO(EmilienM) Disabled for now: http://git.io/kfTmcA
-  # class { 'cinder::backup::ceph':
-  #   backup_ceph_user => $backup_ceph_user,
-  #   backup_ceph_pool => $backup_ceph_pool
-  # }
-
-  # TODO(EmilienM) Disabled for now: http://git.io/uM5sgg
-  # class { 'cinder::glance':
-  #   glance_api_servers     => $ks_glance_internal_host,
-  #   glance_request_timeout => '10'
-  # }
-  # Replaced by:
-  cinder_config {
-    'DEFAULT/glance_api_servers':     value => "${ks_glance_internal_host}:${ks_glance_api_internal_port}";
-    'DEFAULT/glance_request_timeout': value => '10';
-  }
-
-  @@haproxy::balancermember{"${::fqdn}-cinder_api":
-    listening_service => 'cinder_api_cluster',
-    server_names      => $::hostname,
-    ipaddresses       => $api_eth,
-    ports             => $ks_cinder_internal_port,
-    options           => 'check inter 2000 rise 2 fall 5'
-  }
+  include 'cloud::volume::api'
+  include 'cloud::volume::scheduler'
 
 }
