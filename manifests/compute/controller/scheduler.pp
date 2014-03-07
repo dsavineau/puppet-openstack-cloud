@@ -16,10 +16,18 @@
 # Compute controller node
 #
 
-class cloud::compute::controller(
+class cloud::compute::controller::scheduler (
 ){
 
-  include 'cloud::compute::controller::api'
-  include 'cloud::compute::controller::scheduler'
+  include 'cloud::compute'
+
+  class { [
+    'nova::scheduler',
+    'nova::cert',
+    'nova::consoleauth',
+    'nova::conductor'
+  ]:
+    enabled => true,
+  }
 
 }

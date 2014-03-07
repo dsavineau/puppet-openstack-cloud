@@ -18,7 +18,7 @@
 
 require 'spec_helper'
 
-describe 'cloud::compute::controller' do
+describe 'cloud::compute::controller::scheduler' do
 
   shared_examples_for 'openstack compute controller' do
 
@@ -41,17 +41,6 @@ describe 'cloud::compute::controller' do
         neutron_password        => 'secrete',
         memcache_servers        => ['10.0.0.1','10.0.0.2'],
         log_facility            => 'LOG_LOCAL0' }"
-    end
-
-    let :params do
-      { :ks_keystone_internal_host            => '10.0.0.1',
-        :ks_nova_password                     => 'secrete',
-        :api_eth                              => '10.0.0.1',
-        :spice_port                           => '6082',
-        :ks_ec2_public_port                   => '8773',
-        :ks_nova_public_port                  => '8774',
-        :ks_metadata_public_port              => '8775',
-        :neutron_metadata_proxy_shared_secret => 'secrete' }
     end
 
     it 'configure nova common' do
@@ -94,13 +83,6 @@ describe 'cloud::compute::controller' do
       should contain_class('nova::scheduler').with(:enabled => true)
     end
 
-    it 'configure nova-spicehtml5proxy' do
-      should contain_class('nova::spicehtml5proxy').with(
-        :enabled => true,
-        :host    => '10.0.0.1'
-      )
-    end
-
     it 'configure nova-cert' do
       should contain_class('nova::cert').with(:enabled => true)
     end
@@ -111,17 +93,6 @@ describe 'cloud::compute::controller' do
 
     it 'configure nova-conductor' do
       should contain_class('nova::conductor').with(:enabled => true)
-    end
-
-    it 'configure nova-api' do
-      should contain_class('nova::api').with(
-          :enabled                              => true,
-          :auth_host                            => '10.0.0.1',
-          :admin_password                       => 'secrete',
-          :api_bind_address                     => '10.0.0.1',
-          :metadata_listen                      => '10.0.0.1',
-          :neutron_metadata_proxy_shared_secret => 'secrete'
-        )
     end
 
   end
