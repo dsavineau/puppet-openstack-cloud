@@ -17,22 +17,15 @@
 #
 require 'spec_helper'
 
-describe 'cloud::image' do
+describe 'cloud::image::registry' do
 
   let :params do
     { :glance_db_host                   => '10.0.0.1',
       :glance_db_user                   => 'glance',
       :glance_db_password               => 'secrete',
       :ks_keystone_internal_host        => '10.0.0.1',
-      :ks_glance_internal_host          => '10.0.0.1',
-      :openstack_vip                    => '10.0.0.42',
-      :ks_glance_api_internal_port      => '9292',
       :ks_glance_registry_internal_port => '9191',
       :ks_glance_password               => 'secrete',
-      :rabbit_host                      => '10.0.0.1',
-      :rabbit_password                  => 'secrete',
-      :glance_rbd_user                  => 'glance',
-      :glance_rbd_pool                  => 'images',
       :debug                            => true,
       :verbose                          => true,
       :use_syslog                       => true,
@@ -42,27 +35,6 @@ describe 'cloud::image' do
   end
 
   shared_examples_for 'openstack image' do
-
-    it 'configure glance-api' do
-      should contain_class('glance::api').with(
-        :sql_connection        => 'mysql://glance:secrete@10.0.0.1/glance',
-        :keystone_password     => 'secrete',
-        :registry_host         => '10.0.0.42',
-        :registry_port         => '9191',
-        :keystone_tenant       => 'services',
-        :keystone_user         => 'glance',
-        :show_image_direct_url => true,
-        :verbose               => true,
-        :debug                 => true,
-        :auth_host             => '10.0.0.1',
-        :log_facility          => 'LOG_LOCAL0',
-        :bind_host             => '10.0.0.1',
-        :bind_port             => '9292',
-        :use_syslog            => true,
-        :log_dir               => false,
-        :log_file              => false
-      )
-    end
 
     it 'configure glance-registry' do
       should contain_class('glance::registry').with(
@@ -80,24 +52,6 @@ describe 'cloud::image' do
         :log_dir               => false,
         :log_file              => false
       )
-    end
-
-    # TODO(EmilienM) Disabled for now
-    # Follow-up https://github.com/enovance/puppet-cloud/issues/160
-    #
-    # it 'configure glance notifications with rabbitmq backend' do
-    #   should contain_class('glance::notify::rabbitmq').with(
-    #       :rabbit_password => 'secrete',
-    #       :rabbit_userid   => 'glance',
-    #       :rabbit_host     => '10.0.0.1'
-    #     )
-    # end
-
-    it 'configure glance rbd backend' do
-      should contain_class('glance::backend::rbd').with(
-          :rbd_store_pool => 'images',
-          :rbd_store_user => 'glance'
-        )
     end
 
     it 'configure crontab to clean glance cache' do
