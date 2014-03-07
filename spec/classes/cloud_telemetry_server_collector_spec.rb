@@ -18,7 +18,7 @@
 
 require 'spec_helper'
 
-describe 'cloud::telemetry::server' do
+describe 'cloud::telemetry::server::collector' do
 
   shared_examples_for 'openstack telemetry server' do
 
@@ -39,12 +39,7 @@ describe 'cloud::telemetry::server' do
     end
 
     let :params do
-      { :ks_keystone_internal_host            => '10.0.0.1',
-        :ks_keystone_internal_proto           => 'http',
-        :ks_ceilometer_internal_port          => '8777',
-        :ks_ceilometer_password               => 'secrete',
-        :api_eth                              => '10.0.0.1',
-        :mongo_nodes                          => ['node1', 'node2', 'node3'] }
+      { :mongo_nodes                          => ['node1', 'node2', 'node3'] }
     end
 
     it 'configure ceilometer common' do
@@ -72,19 +67,6 @@ describe 'cloud::telemetry::server' do
 
     it 'configure ceilometer alarm evaluator' do
       should contain_class('ceilometer::alarm::evaluator')
-    end
-
-    it 'configure ceilometer alarm notifier' do
-      should contain_class('ceilometer::alarm::notifier')
-    end
-
-    it 'configure ceilometer-api' do
-      should contain_class('ceilometer::api').with(
-          :keystone_password => 'secrete',
-          :keystone_host     => '10.0.0.1',
-          :keystone_protocol => 'http',
-          :host              => '10.0.0.1'
-        )
     end
 
     it 'configure ceilometer-expirer' do
