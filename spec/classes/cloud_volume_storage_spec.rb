@@ -175,7 +175,7 @@ describe 'cloud::volume::storage' do
     context 'with all backends enabled' do
       it 'configure all cinder backends' do
         should contain_class('cinder::backends').with(
-          :enabled_backends => ['lowcost', 'premium']
+          :enabled_backends => ['premium', 'lowcost']
         )
       end
     end
