@@ -18,7 +18,7 @@
 
 ## Overview
 
-The OpenStack Puppet Modules are a flexible Puppet implementation capable of configuring the core [OpenStack](http://docs.openstack.org/) services:
+The [puppet-openstack-cloud](https://wiki.openstack.org/wiki/Puppet-openstack/puppet-openstack-cloud) module is a flexible Puppet composition layer capable of configuring the core [OpenStack](http://docs.openstack.org/) services:
 
 * [Nova](https://github.com/stackforge/puppet-nova) (compute)
 * [Glance](https://github.com/stackforge/puppet-glance) (image)
@@ -41,6 +41,11 @@ Cinder has multi-backend support:
 * iSCSI
 * EMC VNX direct
 * NFS
+Glance supports different backends:
+* RBD (default)
+* file
+* NFS (mount a NFS share by using file backend)
+* Swift
 Neutron supports:
 * ML2 plugin with OVS agent (GRE + VXLAN supported)
 * Cisco plugin with N1KV agent (non-ML2)
