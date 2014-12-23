@@ -74,6 +74,21 @@ describe 'cloud::image::api' do
       )
     end
 
+    it 'configure glance-api policy.json to fix OSSA 2014-041' do
+      should contain_openstacklib__policy__base('delete_image_location').with({
+        :key   => 'delete_image_location',
+        :value => 'role:admin',
+      })
+      should contain_openstacklib__policy__base('get_image_location').with({
+        :key   => 'get_image_location',
+        :value => 'role:admin',
+      })
+      should contain_openstacklib__policy__base('set_image_location').with({
+        :key   => 'set_image_location',
+        :value => 'role:admin',
+      })
+    end
+
     # TODO(EmilienM) Disabled for now
     # Follow-up https://github.com/enovance/puppet-openstack-cloud/issues/160
     #
