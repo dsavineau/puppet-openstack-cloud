@@ -97,6 +97,10 @@
 #   Should be an hash.
 #   Default to {}
 #
+# [*api_policies*]
+#   (optional) Set of policies to configure for glance
+#   Example : { 'glance-context_is_admin'  => {'context_is_admin' => 'true'}, 'glance-default' => {'default' => 'rule:admin_or_owner'} }
+#   Defaults to: { 'delete_image_location' => {'delete_image_location' => 'role:admin'}, 'get_image_location' => {'get_image_location' => 'role:admin'}, 'set_image_location' => {'set_image_location' => 'role:admin'} } to fix OSSA 2014-041.
 class cloud::image::api(
   $glance_db_host                    = '127.0.0.1',
   $glance_db_user                    = 'glance',
@@ -124,6 +128,11 @@ class cloud::image::api(
   $nfs_options                       = 'defaults',
   $pipeline                          = 'keystone',
   $firewall_settings                 = {},
+  $api_policies                      = {
+    'delete_image_location' => {'key' => 'delete_image_location', 'value' => 'role:admin'},
+    'get_image_location'    => {'key' => 'get_image_location',    'value' => 'role:admin'},
+    'set_image_location'    => {'key' => 'set_image_location',    'value' => 'role:admin'},
+  },
 ) {
 
   # Disable twice logging if syslog is enabled
@@ -145,6 +154,10 @@ class cloud::image::api(
 
   $encoded_glance_user     = uriescape($glance_db_user)
   $encoded_glance_password = uriescape($glance_db_password)
+
+  class { 'glance::policy':
+    policies => $api_policies,
+  }
 
   class { 'glance::api':
     database_connection      => "mysql://${encoded_glance_user}:${encoded_glance_password}@${glance_db_host}/glance?charset=utf8",

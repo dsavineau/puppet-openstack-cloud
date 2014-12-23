@@ -19,7 +19,7 @@ forge 'http://forge.puppetlabs.com'
 # OpenStack projects
 mod 'openstacklib',
   :git => 'git://github.com/enovance/puppet-openstacklib.git',
-  :ref => 'c374bed10f8af6000601fa407ebaef0833e1999c'
+  :ref => '1a7531603b7b60fe885c17ac35f63ab19e3d4896'
 mod 'ceilometer',
   :git => 'git://github.com/enovance/puppet-ceilometer.git',
   :ref => '957c2120d0ee0b9db08bfddcce996686ba61d97d'
@@ -28,7 +28,7 @@ mod 'cinder',
   :ref => 'c9271e02d0d5a317ab390cfce9928601208f6073'
 mod 'glance',
   :git => 'git://github.com/enovance/puppet-glance.git',
-  :ref => '78042d76c0854e16a55aaf05c03696d4d422e3c5'
+  :ref => 'e90ea396267f960ec3379e36e42600078548de67'
 mod 'heat',
   :git => 'git://github.com/enovance/puppet-heat.git',
   :ref => '0e6d7eacecd70819384ac61ea3b9df38b90411b0'
