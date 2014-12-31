@@ -74,21 +74,6 @@ describe 'cloud::image::api' do
       )
     end
 
-    it 'configure glance-api policy.json to fix OSSA 2014-041' do
-      should contain_openstacklib__policy__base('delete_image_location').with({
-        :key   => 'delete_image_location',
-        :value => 'role:admin',
-      })
-      should contain_openstacklib__policy__base('get_image_location').with({
-        :key   => 'get_image_location',
-        :value => 'role:admin',
-      })
-      should contain_openstacklib__policy__base('set_image_location').with({
-        :key   => 'set_image_location',
-        :value => 'role:admin',
-      })
-    end
-
     # TODO(EmilienM) Disabled for now
     # Follow-up https://github.com/enovance/puppet-openstack-cloud/issues/160
     #
@@ -111,6 +96,23 @@ describe 'cloud::image::api' do
     it 'configure crontab to clean glance cache' do
       is_expected.to contain_class('glance::cache::cleaner')
       is_expected.to contain_class('glance::cache::pruner')
+    end
+
+    context 'with Glance API policies' do
+      before :each do
+        params.merge!(:api_policies =>
+          {
+            'glance-context' => { 'key' => 'context1', 'value' => 'true' },
+          }
+        )
+      end
+
+      it 'configure glance-api policy.json' do
+        should contain_openstacklib__policy__base('glance-context').with({
+          :key   => 'context1',
+          :value => 'true',
+        })
+      end
     end
 
     context 'with file Glance backend' do
