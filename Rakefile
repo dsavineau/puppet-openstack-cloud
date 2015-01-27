@@ -47,7 +47,7 @@ end
 desc "Validate the metadata.json syntax"
 task :validate_metadata_json do
   $stderr.puts "---> syntax:metadata.json"
-  sh "metadata-json-lint metadata.json"
+  sh "metadata-json-lint --no-strict-dependency --no-strict-license metadata.json"
 end
 
 namespace :module do
