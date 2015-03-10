@@ -3,7 +3,7 @@
   "version": "2.2.0",
   "author": "eNovance",
   "summary": "eNovance Openstack Module",
-  "license": "Apache License 2.0",
+  "license": "Apache-2.0",
   "source": "https://github.com/enovance/puppet-openstack-cloud",
   "project_page": "https://github.com/enovance/puppet-openstack-cloud",
   "issues_url": "https://github.com/enovance/puppet-openstack-cloud/issues",
