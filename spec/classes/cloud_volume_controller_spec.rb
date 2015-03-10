@@ -102,12 +102,10 @@ describe 'cloud::volume::controller' do
       before :each do
         params.merge!(
           :volume_multi_backend => true,
-          :default_volume_type  => nil
+          :default_volume_type  => ''
         )
       end
-      it 'should raise an error and fail' do
-        is_expected.not_to compile
-      end
+      it { should compile.and_raise_error(/when using multi-backend, you should define a default_volume_type value in cloud::volume::controller/) }
     end
 
     it 'configure cinder glance backend' do
