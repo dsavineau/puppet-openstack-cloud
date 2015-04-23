@@ -41,6 +41,13 @@ describe 'cloud::install::puppetmaster' do
       is_exptected.to contain_class('puppetdb::master::config')
     end
 
+    it 'configure apache' do
+      is_expected.to contain_class('apache').with(
+        :purge_configs => false
+      )
+      is_expected.to contain_class('apache::mod::wsgi')
+    end
+
     it 'configure the puppet master configuration file' do
       is_expected.to contain_init_setting('certname').with(
         :setting => 'certname',

@@ -124,7 +124,10 @@ class cloud::install::puppetmaster (
     include ::puppetdb::master::config
   }
 
-  include ::apache
+  class {'::apache' :
+    purge_configs => false,
+  }
+  include 'apache::mod::wsgi'
   create_resources('apache::vhost', $puppetmaster_vhost_configuration, { 'require' => "Exec[puppet cert generate ${::fqdn}]" })
 
   create_resources('ini_setting', $main_configuration, { 'section' => 'main', 'path' => $puppetconf_path, 'require' => "Package[${puppetmaster_package_name}]", 'notify' => 'Service[httpd]' })
